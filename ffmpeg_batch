@@ -7,17 +7,20 @@
 	NC=`tput sgr0`
 
 # vars
-	[[ $1 && ${1-x} ]] && V_BITRATE=${1}K || V_BITRATE=2000K
+	[[ $2 && ${2-x} ]] && V_BITRATE=${2}K || V_BITRATE=2000K
 	AUDIO_PARAM="-ar 44100 -b:a 160k"
 	AUDIO="-an"
+	SILENCE="-hide_banner -loglevel quiet -stats"
 
    echo "${CYAN_BG}
                                 
    Video conversions launched   
                                 ${NC}"
 
-for file in *.mp4
+for file in *.mp4 *.mov
 do
+   if [[ ! -e "$file" ]]; then continue; fi
+
    name=${file##*/}
    base=${name%.*}
    eval $(ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=width "${file}")
@@ -25,22 +28,22 @@ do
 
    mkdir -p "./${base}"
 
-   echo "${MAGENTA_BG} Processing $file ${NC}"
+   echo -e "\n${MAGENTA_BG} Processing $file ${NC}"
 
 #
 # MP4 H264 original width
 # 
 
-  echo "${YELLOW_BG} Converting $file to ${base}.mp4 at original size ${NC}"
+  echo -e "\n${YELLOW_BG} Converting $file to ${base}.mp4 at original size ${NC}"
 
   AUDIO_CODEC="-c:a libfaac" 
   
-  if [[ $2 == "audio" ]]
+  if [[ $1 == "audio" ]]
   then
     AUDIO="${AUDIO_CODEC} ${AUDIO_PARAM}"
   fi
 
-  ffmpeg -i "${file}" -threads 0 -b:v libx264 -pix_fmt yuv420p -profile:v baseline -level 3.0 -b:v ${V_BITRATE} -subq 2 -me_method umh -keyint_min 25 -g 250 -refs 6 -movflags +faststart ${AUDIO} "./${base}/${base}.mp4"
+  ffmpeg -i "${file}" ${SILENCE} -threads 0 -b:v libx264 -pix_fmt yuv420p -profile:v baseline -level 3.0 -b:v ${V_BITRATE} -subq 2 -me_method umh -keyint_min 25 -g 250 -refs 6 -movflags +faststart ${AUDIO} "./${base}/${base}.mp4"
 
 #
 # MP4 H264 1280px width
@@ -48,45 +51,45 @@ do
 
   if [[ ${width} -gt 1280 ]]
   then
-    echo "${YELLOW_BG} Converting $file to ${base}.mp4 at 1280 width ${NC}"
-    ffmpeg -i "${file}" -threads 0 -b:v libx264 -pix_fmt yuv420p -vf scale=1280:-1 -profile:v baseline -level 3.0 -b:v ${V_BITRATE} -subq 2 -me_method umh -keyint_min 25 -g 250 -refs 6 -movflags +faststart ${AUDIO} "./${base}/${base}-1280.mp4"
+    echo -e "\n\n${YELLOW_BG} Converting $file to ${base}.mp4 at 1280px width ${NC}"
+    ffmpeg -i "${file}" ${SILENCE} -threads 0 -b:v libx264 -pix_fmt yuv420p -vf scale=1280:-1 -profile:v baseline -level 3.0 -b:v ${V_BITRATE} -subq 2 -me_method umh -keyint_min 25 -g 250 -refs 6 -movflags +faststart ${AUDIO} "./${base}/${base}-1280.mp4"
   fi
 
 #
 # OGV THEORA
 #
 
-  echo "${YELLOW_BG} Converting $file to ${base}.ogv ${NC}"
+  echo -e "\n\n${YELLOW_BG} Converting $file to ${base}.ogv ${NC}"
 
   AUDIO_CODEC="-c:a libvorbis"
 
-  if [[ $2 == "audio" ]]
+  if [[ $1 == "audio" ]]
   then
     AUDIO="${AUDIO_CODEC} ${AUDIO_PARAM}"
   fi
 
-  ffmpeg -i "${file}" -c:v libtheora -b:v ${V_BITRATE} -qscale:v 7 ${AUDIO} "./${base}/${base}.ogv"
+  ffmpeg -i "${file}" ${SILENCE} -c:v libtheora -b:v ${V_BITRATE} -qscale:v 7 ${AUDIO} "./${base}/${base}.ogv"
 
 #
 # WEBM VPX
 #
 
-  echo "${YELLOW_BG} Converting $file to ${base}.webm ${NC}"
+  echo -e "\n\n${YELLOW_BG} Converting $file to ${base}.webm ${NC}"
 
   AUDIO_CODEC="-c:a libvorbis"
 
-  if [[ $2 == "audio" ]]
+  if [[ $1 == "audio" ]]
   then
     AUDIO="${AUDIO_CODEC} ${AUDIO_PARAM}"
   fi 
 
-  ffmpeg -i "${file}" -c:v libvpx -b:v ${V_BITRATE} -crf 10 ${AUDIO} "./${base}/${base}.webm"
+  ffmpeg -i "${file}" ${SILENCE} -c:v libvpx -b:v ${V_BITRATE} -crf 10 ${AUDIO} "./${base}/${base}.webm"
 
 #
 # FILE DONE
 #
 
-  echo "${MAGENTA_BG} $file done! ${NC}"
+  echo -e "\n\n${MAGENTA_BG} $file done! ${NC}"
 
 done
 
@@ -94,9 +97,11 @@ done
 # LOOP DONE
 #
 
-   echo "${CYAN_BG}
+   echo -e "${CYAN_BG}
                                 
    Video conversions finished   
-                                ${NC}"
+                                ${NC}\n"
 
-/usr/bin/osascript -e "display notification \"Your command line video batch was completed!\" with title \"Hi there,\" sound name \"Pop\""
+if hash /usr/bin/osascript 2>/dev/null; then
+   /usr/bin/osascript -e "display notification \"Your video batch process is completed!\" with title \"Hi there,\" sound name \"Pop\""
+fi
