@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 # colours
 	MAGENTA_BG=`tput setab 5`
@@ -13,8 +13,8 @@
 	SILENCE="-hide_banner -loglevel quiet -stats"
 
    echo "${CYAN_BG}
-                                
-   Video conversions launched   
+
+   Video conversions launched
                                 ${NC}"
 
 for file in *.mp4 *.mov
@@ -32,12 +32,12 @@ do
 
 #
 # MP4 H264 original width
-# 
+#
 
   echo -e "\n${YELLOW_BG} Converting $file to ${base}.mp4 at original size ${NC}"
 
-  AUDIO_CODEC="-c:a libfaac" 
-  
+  AUDIO_CODEC="-c:a libfaac"
+
   if [[ $1 == "audio" ]]
   then
     AUDIO="${AUDIO_CODEC} ${AUDIO_PARAM}"
@@ -81,7 +81,7 @@ do
   if [[ $1 == "audio" ]]
   then
     AUDIO="${AUDIO_CODEC} ${AUDIO_PARAM}"
-  fi 
+  fi
 
   ffmpeg -i "${file}" ${SILENCE} -c:v libvpx -b:v ${V_BITRATE} -crf 10 ${AUDIO} "./${base}/${base}.webm"
 
